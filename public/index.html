@@ -67,6 +67,27 @@
       <p id="provocacao" aria-live="polite"></p>
     </section>
 
+    <section class="hidden" id="formulario">
+      <h2>Que alegria!</h2>
+      <p class="subtitle">Para que eu possa buscá-la, por gentileza, informe o endereço.</p>
+      <form id="form-endereco" novalidate>
+        <button type="button" id="localizacao" class="secundario">📍 Usar minha localização</button>
+        <p id="status-local" class="status" aria-live="polite"></p>
+
+        <label for="endereco">Endereço</label>
+        <input id="endereco" name="endereco" required maxlength="300" placeholder="Rua, número, bairro" autocomplete="street-address">
+
+        <label for="complemento">Complemento</label>
+        <input id="complemento" name="complemento" maxlength="150" placeholder="Apto, bloco, ponto de referência">
+
+        <label for="observacao">Observação</label>
+        <textarea id="observacao" name="observacao" maxlength="500" rows="3" placeholder="Algo que eu deva saber?"></textarea>
+
+        <p id="erro" class="erro" aria-live="assertive"></p>
+        <button type="submit" id="confirmar">Confirmar</button>
+      </form>
+    </section>
+
     <section class="success hidden" id="aceito">
       <div class="big">🍻</div>
       <h2>Convite aceito!</h2>

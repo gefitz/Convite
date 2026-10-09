@@ -46,9 +46,88 @@ nao.addEventListener("touchstart", fugir, { passive: false });
 nao.addEventListener("focus", fugir);
 nao.addEventListener("click", fugir);
 
+function mostrar(id) {
+  ["pergunta", "formulario", "aceito"].forEach(s =>
+    document.getElementById(s).classList.toggle("hidden", s !== id));
+  document.getElementById(id).scrollIntoView({ behavior: "smooth" });
+}
+
 sim.addEventListener("click", () => {
   nao.remove();
-  document.getElementById("pergunta").classList.add("hidden");
-  document.getElementById("aceito").classList.remove("hidden");
-  document.getElementById("aceito").scrollIntoView({ behavior: "smooth" });
+  mostrar("formulario");
+  document.getElementById("endereco").focus({ preventScroll: true });
+});
+
+// Endereço pela localização do navegador (o navegador pede permissão)
+const campoEndereco = document.getElementById("endereco");
+const statusLocal = document.getElementById("status-local");
+let linkMapa = "";
+
+document.getElementById("localizacao").addEventListener("click", () => {
+  if (!("geolocation" in navigator)) {
+    statusLocal.textContent = "Seu navegador não permite localização. Pode digitar o endereço abaixo.";
+    return;
+  }
+  statusLocal.textContent = "Buscando sua localização...";
+  navigator.geolocation.getCurrentPosition(async ({ coords }) => {
+    const { latitude: lat, longitude: lon } = coords;
+    linkMapa = `https://www.google.com/maps?q=${lat},${lon}`;
+    try {
+      const resp = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}&accept-language=pt-BR`);
+      const dados = await resp.json();
+      const a = dados.address || {};
+      const partes = [
+        [a.road, a.house_number].filter(Boolean).join(", "),
+        a.suburb || a.neighbourhood,
+        a.city || a.town,
+      ].filter(Boolean);
+      campoEndereco.value = partes.join(" - ") || dados.display_name || "";
+      statusLocal.textContent = "Endereço encontrado. Confira e ajuste o número, se precisar.";
+    } catch {
+      statusLocal.textContent = "Localização obtida, mas não achei o nome da rua. Pode digitar abaixo.";
+    }
+  }, () => {
+    statusLocal.textContent = "Não foi possível obter a localização. Pode digitar o endereço abaixo.";
+  }, { enableHighAccuracy: true, timeout: 15000 });
+});
+
+// Envio por e-mail via FormSubmit (funciona em site estático, sem senha)
+const DESTINO = "https://formsubmit.co/ajax/almeidafitz@gmail.com";
+const form = document.getElementById("form-endereco");
+const erro = document.getElementById("erro");
+const confirmar = document.getElementById("confirmar");
+
+form.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  erro.textContent = "";
+  const endereco = campoEndereco.value.trim();
+  if (endereco.length < 5) {
+    erro.textContent = "Por gentileza, informe o endereço.";
+    campoEndereco.focus();
+    return;
+  }
+
+  confirmar.disabled = true;
+  confirmar.textContent = "Enviando...";
+  try {
+    const resp = await fetch(DESTINO, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Accept": "application/json" },
+      body: JSON.stringify({
+        _subject: "Mariana aceitou o convite! Endereço para buscar",
+        _template: "table",
+        Convite: `Hoje (${hoje}) às 20h00 - Bar do Alemão`,
+        Endereco: endereco,
+        Complemento: document.getElementById("complemento").value.trim() || "-",
+        Observacao: document.getElementById("observacao").value.trim() || "-",
+        Mapa: linkMapa || "-",
+      }),
+    });
+    if (!resp.ok) throw new Error(resp.status);
+    mostrar("aceito");
+  } catch {
+    erro.textContent = "Não consegui enviar agora. Pode tentar de novo?";
+    confirmar.disabled = false;
+    confirmar.textContent = "Confirmar";
+  }
 });
